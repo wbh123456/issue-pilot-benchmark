@@ -1,0 +1,80 @@
+"""FastAPI app wiring."""
+
+from fastapi import FastAPI, Header, HTTPException
+from pydantic import BaseModel
+
+from app import auth, calculator, orders, users, validators
+
+
+app = FastAPI(title="issue-pilot-benchmark")
+
+
+class LoginBody(BaseModel):
+    email: str
+    password: str
+
+
+class OrderItem(BaseModel):
+    price: float
+    qty: int
+
+
+class CreateOrderBody(BaseModel):
+    items: list[OrderItem]
+
+
+def _bearer(authorization: str) -> str:
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="missing bearer token")
+    return authorization.split(" ", 1)[1].strip()
+
+
+@app.post("/auth/login")
+def login(body: LoginBody) -> dict:
+    token = users.login(body.email, body.password)
+    return {"access_token": token}
+
+
+@app.get("/auth/me")
+def me(authorization: str = Header(...)) -> dict:
+    token = _bearer(authorization)
+    user_id = auth.get_current_user_id(token)
+    return {"user_id": user_id}
+
+
+@app.get("/users/{user_id}")
+def get_user_endpoint(user_id: int) -> dict:
+    user = users.get_user(user_id)
+    return {"id": user_id, "email": user["email"], "role": user["role"]}
+
+
+@app.post("/users/{user_id}/promote")
+def promote_endpoint(user_id: int, authorization: str = Header(...)) -> dict:
+    token = _bearer(authorization)
+    auth.require_admin(token)
+    user = users.promote_user(user_id)
+    return {"id": user_id, "role": user["role"]}
+
+
+@app.post("/orders")
+def create_order_endpoint(
+    body: CreateOrderBody,
+    authorization: str = Header(...),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+) -> dict:
+    token = _bearer(authorization)
+    user_id = auth.get_current_user_id(token)
+    items = [i.model_dump() for i in body.items]
+    return orders.create_order(
+        user_id=user_id, items=items, idempotency_key=idempotency_key
+    )
+
+
+@app.post("/validate/email")
+def validate_email(email: str) -> dict:
+    return {"valid": validators.is_valid_email(email)}
+
+
+@app.get("/calc/sum")
+def calc_sum(start: int, end: int) -> dict:
+    return {"result": calculator.sum_inclusive(start, end)}
