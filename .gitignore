@@ -8,3 +8,5 @@ venv/
 .DS_Store
 .idea/
 .vscode/
+tests/_gold/
+_app_bak/

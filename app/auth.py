@@ -1,15 +1,4 @@
-"""JWT helpers.
-
-Contract:
-    * ``create_token(user_id, role=..., ...)`` issues an access token whose
-      payload contains ``user_id`` and (optionally) ``role``.
-    * ``decode_token(token)`` returns the payload dict and translates *all*
-      JWT-level errors into ``HTTPException(401)``.
-    * ``get_current_user_id(token)`` returns ``payload["user_id"]`` and
-      returns ``HTTPException(401)`` if the claim is missing.
-    * ``require_admin(token)`` returns the user id, or raises
-      ``HTTPException(403)`` if the token's ``role`` claim is not ``"admin"``.
-"""
+"""JWT helpers for access tokens."""
 
 from datetime import datetime, timedelta, timezone
 
@@ -31,10 +20,7 @@ def create_token(user_id: int, expires_in_seconds: int = 3600) -> str:
 
 
 def decode_token(token: str) -> dict:
-    """Decode a signed JWT and return its payload.
-
-    Should translate any JWT error to ``HTTPException(401)``.
-    """
+    """Decode a signed JWT and return its payload."""
     try:
         return jwt.decode(token, SECRET, algorithms=[ALGO])
     except jwt.InvalidSignatureError as exc:
@@ -42,7 +28,7 @@ def decode_token(token: str) -> dict:
 
 
 def get_current_user_id(token: str) -> int:
-    """Return the ``user_id`` claim from a valid token."""
+    """Return the user_id claim from a valid token."""
     payload = decode_token(token)
     return payload["user_id"]
 

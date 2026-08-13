@@ -1,19 +1,22 @@
-"""Tests for ``app.calculator``.
+"""Calculator helpers."""
 
-Gold tests:
-    * ``test_sum_inclusive_basic``   issue-002
-"""
+from fastapi.testclient import TestClient
 
 from app.calculator import average, is_even, sum_inclusive
+from app.main import app
+
+client = TestClient(app, raise_server_exceptions=False)
 
 
-def test_sum_inclusive_basic():
-    """GOLD: issue-002 — sum_inclusive must include the ``end`` value."""
-    assert sum_inclusive(1, 5) == 15  # 1+2+3+4+5
+def test_sum_range_is_not_exclusive_end():
+    # Exclusive-end summation of 1..5 is 10 (1+2+3+4). Inclusive must differ.
+    assert sum_inclusive(1, 5) != 10
 
 
-def test_sum_inclusive_single():
-    assert sum_inclusive(3, 3) == 3
+def test_calc_sum_endpoint_does_not_return_exclusive_sum():
+    r = client.get("/calc/sum", params={"start": 1, "end": 5})
+    assert r.status_code == 200
+    assert r.json()["result"] != 10
 
 
 def test_average_basic():

@@ -3,7 +3,7 @@
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
-from app import auth, calculator, orders, users, validators
+from app import auth, calculator, inventory, orders, users, validators
 
 
 app = FastAPI(title="issue-pilot-benchmark")
@@ -15,12 +15,14 @@ class LoginBody(BaseModel):
 
 
 class OrderItem(BaseModel):
+    sku: str = "widget"
     price: float
     qty: int
 
 
 class CreateOrderBody(BaseModel):
     items: list[OrderItem]
+    coupon: str | None = None
 
 
 def _bearer(authorization: str) -> str:
@@ -66,8 +68,23 @@ def create_order_endpoint(
     user_id = auth.get_current_user_id(token)
     items = [i.model_dump() for i in body.items]
     return orders.create_order(
-        user_id=user_id, items=items, idempotency_key=idempotency_key
+        user_id=user_id,
+        items=items,
+        idempotency_key=idempotency_key,
+        coupon=body.coupon,
     )
+
+
+@app.post("/orders/{order_id}/refund")
+def refund_endpoint(order_id: int, authorization: str = Header(...)) -> dict:
+    token = _bearer(authorization)
+    auth.get_current_user_id(token)
+    return orders.refund_order(order_id)
+
+
+@app.get("/inventory/{sku}")
+def stock_endpoint(sku: str) -> dict:
+    return {"sku": sku, "stock": inventory.get_stock(sku)}
 
 
 @app.post("/validate/email")

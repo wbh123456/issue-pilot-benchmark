@@ -1,23 +1,14 @@
-"""In-memory order store.
-
-Two contracts matter:
-    * ``calculate_total`` respects both ``price`` and ``qty`` on each item.
-    * ``create_order`` is idempotent w.r.t. ``idempotency_key`` — a second
-      call with the same key must return the *existing* order, not a new one.
-"""
+"""In-memory order store."""
 
 from fastapi import HTTPException
 
+from app import inventory, payments, pricing
 
 _ORDERS: list[dict] = []
-_IDEM_KEYS: dict[str, int] = {}  # idempotency key -> order id
 
 
 def calculate_total(items: list[dict], tax_rate: float = 0.0) -> float:
-    """Return the tax-inclusive total for ``items``.
-
-    Each item is a dict with ``price`` (float) and ``qty`` (int).
-    """
+    """Return the tax-inclusive total for ``items``."""
     subtotal = sum(item["price"] for item in items)
     return round(subtotal * (1 + tax_rate), 2)
 
@@ -26,21 +17,36 @@ def create_order(
     user_id: int,
     items: list[dict],
     idempotency_key: str | None = None,
+    coupon: str | None = None,
 ) -> dict:
-    """Create a new order and return it.
+    """Create a new order and return it."""
+    inventory.allocate_bin(items)
 
-    When ``idempotency_key`` is provided and has been seen before, the
-    previously created order must be returned unchanged.
-    """
+    total = calculate_total(items)
+    if coupon:
+        total = pricing.apply_coupon(total, coupon)
+        total = pricing.apply_coupon(total, coupon)
+
+    payments.charge(user_id, total, items)
+
     order = {
         "id": len(_ORDERS) + 1,
         "user_id": user_id,
         "items": items,
-        "total": calculate_total(items),
+        "total": round(total, 2),
         "status": "pending",
+        "coupon": coupon,
+        "idempotency_key": idempotency_key,
     }
     _ORDERS.append(order)
     return order
+
+
+def refund_order(order_id: int) -> dict:
+    order = get_order(order_id)
+    payments.refund(order)
+    order["status"] = "refunded"
+    return {"refunded": True, "id": order_id, "total": order["total"]}
 
 
 def get_order(order_id: int) -> dict:
@@ -51,6 +57,7 @@ def get_order(order_id: int) -> dict:
 
 
 def reset_store() -> None:
-    """Test helper — clear all orders and idempotency keys."""
+    """Test helper — clear orders and related in-memory stores."""
     _ORDERS.clear()
-    _IDEM_KEYS.clear()
+    inventory.reset_store()
+    payments.reset_store()

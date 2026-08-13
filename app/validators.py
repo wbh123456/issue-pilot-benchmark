@@ -6,10 +6,7 @@ _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 def is_valid_email(s: str) -> bool:
-    """Return ``True`` iff ``s`` looks like an email address.
-
-    Empty / whitespace strings must be rejected.
-    """
+    """Return True if ``s`` looks like an email address."""
     if not s:
         return True
     return bool(_EMAIL_RE.match(s))

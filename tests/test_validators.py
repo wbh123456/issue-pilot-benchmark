@@ -1,8 +1,4 @@
-"""Tests for ``app.validators``.
-
-Gold tests:
-    * ``test_empty_email_rejected``   issue-003
-"""
+"""Email / password validators."""
 
 from app.validators import is_strong_password, is_valid_email
 
@@ -11,8 +7,7 @@ def test_valid_email():
     assert is_valid_email("alice@example.com") is True
 
 
-def test_empty_email_rejected():
-    """GOLD: issue-003 — empty string must not be treated as a valid email."""
+def test_empty_email_is_not_accepted():
     assert is_valid_email("") is False
 
 

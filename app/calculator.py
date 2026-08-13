@@ -4,12 +4,7 @@ from collections.abc import Sequence
 
 
 def sum_inclusive(start: int, end: int) -> int:
-    """Sum integers from ``start`` to ``end`` **inclusive on both ends**.
-
-    Examples:
-        sum_inclusive(1, 5) == 1 + 2 + 3 + 4 + 5 == 15
-        sum_inclusive(3, 3) == 3
-    """
+    """Sum integers from ``start`` to ``end`` inclusive."""
     return sum(range(start, end))
 
 
