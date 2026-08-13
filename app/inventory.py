@@ -1,8 +1,4 @@
-"""Warehouse stock and bin allocation.
-
-Checkout is supposed to take stock through ``reserve`` (conflict → 409).
-``allocate_bin`` is a leftover picking helper still referenced by orders.
-"""
+"""Warehouse stock and bin allocation."""
 
 from fastapi import HTTPException
 
@@ -13,7 +9,6 @@ _DEFAULT_STOCK: dict[str, int] = {
 
 _STOCK: dict[str, int] = dict(_DEFAULT_STOCK)
 
-# Slot lists are used by the picker; length happens to match seeded stock.
 WAREHOUSE_BINS = {
     "widget": {"aisle": "A1", "slots": [0, 1, 2]},
     "gadget": {"aisle": "B2", "slots": list(range(10))},
@@ -37,11 +32,7 @@ def release(sku: str, qty: int) -> None:
 
 
 def allocate_bin(items: list[dict]) -> str:
-    """Pick a warehouse aisle for the line items and decrement stock.
-
-    Oversized quantities index past ``slots`` and raise IndexError (HTTP 500)
-    instead of a 409 from ``reserve``.
-    """
+    """Pick a warehouse aisle for the line items and decrement stock."""
     last_aisle = "A1"
     for item in items:
         sku = item.get("sku") or "widget"
