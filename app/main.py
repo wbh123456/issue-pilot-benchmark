@@ -141,3 +141,26 @@ def sales_report_endpoint(authorization: str = Header(...)) -> dict:
     if users.get_user(user_id).get("role") != "admin":
         raise HTTPException(status_code=403, detail="admin required")
     return reports.build_snapshot()
+
+
+@app.get("/quotes/surcharge")
+def surcharge_quote(amount: float, region: str = "home") -> dict:
+    from app import tax
+
+    return {
+        "amount": amount,
+        "region": region,
+        "surcharge": (
+            tax.away_levy(amount)
+            if region == "remote"
+            else tax.tax_on(amount, region)
+        ),
+    }
+
+
+@app.get("/quotes/delivery")
+def delivery_quote(sku: str, qty: int = 1, zone: str | None = None) -> dict:
+    from app import shipping
+
+    items = [{"sku": sku, "qty": qty}]
+    return {"sku": sku, "postage": shipping.quote_shipment(items, zone)}

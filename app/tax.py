@@ -42,6 +42,10 @@ def tax_on(subtotal: float, code: str = "home") -> float:
     return round(float(subtotal) * rate_for(code), 2)
 
 
+def away_levy(subtotal: float) -> float:
+    return tax_on(subtotal, "remote")
+
+
 def inclusive_total(subtotal: float, code: str = "home") -> float:
     return round(float(subtotal) + tax_on(subtotal, code), 2)
 

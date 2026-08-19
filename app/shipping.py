@@ -44,8 +44,6 @@ def weight_surcharge(weight_g: int) -> float:
 
 
 def quote_shipment(items: list[dict], zone: str | None = None) -> float:
-    if catalog.digital_only(items):
-        return 0.0
     postage = base_postage(zone)
     postage += weight_surcharge(catalog.line_weight(items))
     return round(postage, 2)

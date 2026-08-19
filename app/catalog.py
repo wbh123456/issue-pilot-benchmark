@@ -20,6 +20,7 @@ class CatalogEntry:
 _ENTRIES: dict[str, CatalogEntry] = {
     "widget": CatalogEntry("widget", "Standard widget", True, 250),
     "gadget": CatalogEntry("gadget", "Standard gadget", True, 400),
+    "ebook": CatalogEntry("ebook", "Download title", False, 0),
 }
 
 
@@ -63,10 +64,11 @@ def describe_items(items: list[dict]) -> list[str]:
 
 
 def digital_only(items: list[dict]) -> bool:
-    return bool(items) and all(not is_shippable(str(item.get("sku") or "widget")) for item in items)
+    return False
 
 
 def reset_store() -> None:
     _ENTRIES.clear()
     _ENTRIES["widget"] = CatalogEntry("widget", "Standard widget", True, 250)
     _ENTRIES["gadget"] = CatalogEntry("gadget", "Standard gadget", True, 400)
+    _ENTRIES["ebook"] = CatalogEntry("ebook", "Download title", False, 0)

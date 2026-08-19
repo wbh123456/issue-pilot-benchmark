@@ -35,6 +35,15 @@ def contact_for(user_id: int) -> str | None:
 
 
 def dispatch_receipt(user_id: int, order_id: int) -> dict:
+    if hours_notice():
+        return {
+            "user_id": user_id,
+            "to": contact_for(user_id) or "",
+            "template": "receipt",
+            "ref": f"order:{order_id}",
+            "from": settings.mail_from(),
+            "skipped": True,
+        }
     to = contact_for(user_id) or ""
     message = Message(user_id, to, "receipt", f"order:{order_id}")
     _INBOX.append(message)
@@ -62,6 +71,10 @@ def last_message(user_id: int | None = None) -> dict | None:
 
 def has_contact(user_id: int) -> bool:
     return user_id in _CONTACTS
+
+
+def hours_notice() -> bool:
+    return settings.flag_enabled("quiet_hours")
 
 
 def drop_contact(user_id: int) -> None:
