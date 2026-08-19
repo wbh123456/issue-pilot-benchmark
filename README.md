@@ -10,7 +10,7 @@ are not part of this tree.
 ## Layout
 
 ```
-app/          FastAPI app, auth, users, orders, inventory, pricing, payments
+app/          FastAPI app and supporting storefront modules
 tests/        Symptom-level reproductions (one issue per file)
 ```
 

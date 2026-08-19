@@ -3,7 +3,15 @@
 from fastapi import FastAPI, Header, HTTPException
 from pydantic import BaseModel
 
-from app import auth, calculator, inventory, orders, users, validators
+from app import (
+    auth,
+    calculator,
+    inventory,
+    orders,
+    reports,
+    users,
+    validators,
+)
 
 
 app = FastAPI(title="issue-pilot-benchmark")
@@ -23,6 +31,10 @@ class OrderItem(BaseModel):
 class CreateOrderBody(BaseModel):
     items: list[OrderItem]
     coupon: str | None = None
+
+
+class EmailBody(BaseModel):
+    email: str
 
 
 def _bearer(authorization: str) -> str:
@@ -95,3 +107,37 @@ def validate_email(email: str) -> dict:
 @app.get("/calc/sum")
 def calc_sum(start: int, end: int) -> dict:
     return {"result": calculator.sum_inclusive(start, end)}
+
+
+@app.patch("/users/me/email")
+def change_email_endpoint(body: EmailBody, authorization: str = Header(...)) -> dict:
+    token = _bearer(authorization)
+    user_id = auth.get_current_user_id(token)
+    return users.change_email(user_id, body.email)
+
+
+@app.get("/notifications/inbox")
+def inbox_endpoint(authorization: str = Header(...)) -> dict:
+    token = _bearer(authorization)
+    user_id = auth.get_current_user_id(token)
+    from app import notifications
+
+    return {"messages": notifications.list_messages(user_id)}
+
+
+@app.get("/audit/events")
+def audit_events_endpoint(order_id: int, authorization: str = Header(...)) -> dict:
+    token = _bearer(authorization)
+    auth.get_current_user_id(token)
+    from app import audit
+
+    return {"events": audit.events_for_order(order_id)}
+
+
+@app.get("/reports/sales")
+def sales_report_endpoint(authorization: str = Header(...)) -> dict:
+    token = _bearer(authorization)
+    user_id = auth.get_current_user_id(token)
+    if users.get_user(user_id).get("role") != "admin":
+        raise HTTPException(status_code=403, detail="admin required")
+    return reports.build_snapshot()

@@ -35,7 +35,23 @@ def login(email: str, password: str) -> str:
     uid, user = match
     if user["password"] != password:
         raise HTTPException(status_code=401, detail="invalid credentials")
+    from app import notifications
+
+    notifications.capture_contact(uid, user["email"])
     return auth.create_token(user_id=uid)
+
+
+def change_email(user_id: int, email: str) -> dict:
+    from app import validators
+
+    if not validators.is_valid_email(email) or not email:
+        raise HTTPException(status_code=400, detail="invalid email")
+    taken = find_user_by_email(email)
+    if taken is not None and taken[0] != user_id:
+        raise HTTPException(status_code=409, detail="email in use")
+    user = get_user(user_id)
+    user["email"] = email
+    return {"id": user_id, "email": email, "role": user["role"]}
 
 
 def promote_user(target_id: int) -> dict:
@@ -46,5 +62,8 @@ def promote_user(target_id: int) -> dict:
 
 def reset_store() -> None:
     """Test helper — restore the seeded users."""
+    from app import notifications
+
     _USERS.clear()
     _USERS.update(deepcopy(_DEFAULT_USERS))
+    notifications.reset_store()
